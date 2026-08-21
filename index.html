@@ -22,14 +22,10 @@
         <div class="nav-title">Controle de Abastecimento</div>
         <div class="nav-sub">Segurança Empresarial Sudeste</div>
       </div>
-    </div>
     <div class="nav-right">
-      <button class="btn-sm" onclick="exportCSV()">
-        <i class="ti ti-download" style="font-size:14px;"></i> Exportar CSV
-      </button>
-      <button class="btn-sm" onclick="syncData()">
-        <i class="ti ti-refresh" style="font-size:14px;"></i> Atualizar
-      </button>
+      <a href="admin.html" class="btn-sm" style="text-decoration: none; color: var(--text); background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
+        <i class="ti ti-lock" style="font-size:14px; color: var(--accent2);"></i> Gerência
+      </a>
     </div>
   </nav>
 
@@ -53,6 +49,14 @@
             <label>Hora *</label>
             <input type="time" id="f-hora" required />
           </div>
+        </div>
+
+        <div class="fg">
+          <label>Turno *</label>
+          <select id="f-turno" required>
+            <option value="Diurno">Diurno</option>
+            <option value="Noturno">Noturno</option>
+          </select>
         </div>
 
         <div class="grid2">
@@ -197,16 +201,10 @@ function calcKm() {
   document.getElementById('km-preview').textContent = diff;
 }
 
-function determinarTurno(horaStr) {
-  // 06:00 as 18:00 (Diurno), 18:00 as 06:00 (Noturno)
-  const h = parseInt(horaStr.split(':')[0], 10);
-  if (h >= 6 && h < 18) return 'Diurno';
-  return 'Noturno';
-}
-
 function enviar() {
   const data = document.getElementById('f-data').value;
   const hora = document.getElementById('f-hora').value;
+  const turno = document.getElementById('f-turno').value;
   const complexo = document.getElementById('f-complexo').value.trim();
   const projeto = document.getElementById('f-projeto').value.trim();
   const placa = document.getElementById('f-placa').value.trim().toUpperCase();
@@ -229,7 +227,6 @@ function enviar() {
   btn.innerHTML = '<i class="ti ti-loader" style="font-size:16px;"></i> Registrando...';
 
   const kmRodado = kmFinal - kmInicial;
-  const turno = determinarTurno(hora);
 
   const registro = {
     id: 'A' + Date.now().toString().slice(-6),
@@ -369,40 +366,6 @@ function excluir(id) {
   toast('Registro excluído.');
 }
 
-function exportCSV() {
-  const dados = getDados();
-  if (!dados.length) { toast('Nenhum dado para exportar.', 'alert-circle'); return; }
-  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado,Litros';
-  const rows = dados.map(d =>
-    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado},${d.litros || 0}`
-  );
-  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'controle_abastecimento_' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  toast('CSV exportado!');
-}
-
-async function syncData() {
-  if (!SHEETS_URL) {
-    toast('Nenhuma nuvem configurada. Dados locais.', 'info-circle');
-    renderDashboard();
-    return;
-  }
-  toast('Sincronizando dados...', 'refresh');
-  try {
-    const res = await fetch(SHEETS_URL);
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      renderDashboard();
-      toast('Dados atualizados!', 'cloud-check');
-    }
-  } catch (e) {
-    console.error(e);
-    toast('Erro ao sincronizar', 'alert-circle');
-  }
 }
 </script>
 </body>

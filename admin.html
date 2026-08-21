@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Gerencial - Abastecimento</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Login modal specific styles */
+  .login-card {
+    width:100%;max-width:380px;position:relative;
+    background:var(--surface);border:1px solid var(--border2);
+    border-radius:20px;padding:2.5rem 2rem;text-align:center;
+    animation:fadeUp .4s ease;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .login-logo {
+    width:64px;height:64px;border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),#059669);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 1.5rem;
+    box-shadow:0 0 40px rgba(16,185,129,.3);
+  }
+  .login-logo i { font-size:28px;color:#fff; }
+  .login-error {
+    background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);
+    border-radius:8px;padding:10px 14px;margin-bottom:14px;
+    font-size:12px;color:#ef4444;display:none;align-items:center;gap:8px;
+  }
+  .login-error.show { display:flex; }
+  .login-btn {
+    width:100%;padding:12px;border:none;border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),#059669);
+    color:#fff;font-size:14px;font-weight:500;cursor:pointer;
+    font-family:inherit;display:flex;align-items:center;
+    justify-content:center;gap:8px;transition:all .2s;margin-top:6px;
+  }
+  .login-btn:hover { box-shadow:0 4px 24px rgba(16,185,129,.35);transform:translateY(-1px); }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" style="display:flex;position:fixed;inset:0;z-index:2000;background:rgba(12,12,15,0.9);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:1.5rem;">
+  <div class="login-card">
+    <div class="login-logo"><i class="ti ti-lock"></i></div>
+    <h2 style="font-size:18px;font-weight:600;margin-bottom:6px;">Acesso Gerencial</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1.75rem;">Visão geral de Abastecimento</p>
+    <div class="login-error" id="login-error">
+      <i class="ti ti-alert-circle"></i>
+      <span id="login-error-msg">Usuário ou senha incorretos.</span>
+    </div>
+    <div class="fg" style="text-align:left;">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="admin" autocomplete="username" />
+    </div>
+    <div class="fg" style="text-align:left;">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">
+      <i class="ti ti-login" style="font-size:16px;"></i> Entrar
+    </button>
+  </div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div id="admin-view" style="display:none;" class="wrap">
+  <!-- Nav Bar -->
+  <nav class="nav-bar">
+    <div class="nav-center">
+      <div class="nav-icon" style="background:rgba(16,185,129,0.15);color:var(--ok);"><i class="ti ti-chart-bar"></i></div>
+      <div>
+        <div class="nav-title">Dashboard Gerencial</div>
+        <div class="nav-sub">Visão Global - Segurança Empresarial Sudeste</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="btn-sm" onclick="syncData()">
+        <i class="ti ti-refresh" style="font-size:14px;"></i> Puxar da Nuvem
+      </button>
+      <button class="btn-sm" onclick="exportCSV()">
+        <i class="ti ti-download" style="font-size:14px;"></i> Exportar CSV
+      </button>
+      <button class="btn-sm" onclick="doLogout()" style="color:var(--danger);border-color:rgba(239,68,68,.25);">
+        <i class="ti ti-logout" style="font-size:14px;"></i> Sair
+      </button>
+    </div>
+  </nav>
+
+  <!-- Dashboard Area (Full width) -->
+  <div>
+    <!-- KPIs -->
+    <div class="kpis" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="kpi">
+        <div class="kpi-val" id="kpi-total">0</div>
+        <div class="kpi-lbl">KM Rodado (Total Filtro)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" id="kpi-diurno" style="color: #fbbf24;">0</div>
+        <div class="kpi-lbl">KM Diurno (06h - 18h)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" id="kpi-noturno" style="color: #60a5fa;">0</div>
+        <div class="kpi-lbl">KM Noturno (18h - 06h)</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-val" id="kpi-litros" style="color: #34d399;">0</div>
+        <div class="kpi-lbl">Total Litros (Filtro)</div>
+      </div>
+    </div>
+
+    <!-- Filters & Table -->
+    <div class="card" style="padding: 1.5rem;">
+      <div class="card-title" style="margin-bottom: 1rem;">
+        <i class="ti ti-filter" style="color:var(--text2);"></i> Filtros Globais
+      </div>
+      
+      <div class="filters-bar">
+        <div class="fg">
+          <label>Data</label>
+          <input type="date" id="filter-data" onchange="renderDashboard()" />
+        </div>
+        <div class="fg">
+          <label>Complexo</label>
+          <input type="text" id="filter-complexo" placeholder="Todos..." oninput="renderDashboard()" />
+        </div>
+        <div class="fg">
+          <label>Projeto</label>
+          <input type="text" id="filter-projeto" placeholder="Todos..." oninput="renderDashboard()" />
+        </div>
+        <div class="fg">
+          <label>Placa</label>
+          <input type="text" id="filter-placa" placeholder="Todas..." oninput="renderDashboard()" />
+        </div>
+        <div class="fg" style="flex: 0 0 auto; display: flex; align-items: flex-end;">
+          <button class="btn-sm" onclick="limparFiltros()" style="height: 38px;">Limpar</button>
+        </div>
+      </div>
+
+      <div id="table-area" style="margin-top: 1.5rem;">
+        <!-- Table renders here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <i class="ti ti-check toast-icon"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- SCRIPT LOGIC -->
+<script>
+const STORAGE_KEY = 'abastecimento_dados_admin';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwl6olRtVdBjKzl4FSirVBHn5vIby-4YyflZZJQwnuDfZQXwK54kTfewMm7ifTuIX1t/exec';
+
+function toast(msg, icon='check') {
+  document.getElementById('toast-msg').textContent = msg;
+  document.querySelector('.toast-icon').className = `ti ti-${icon} toast-icon`;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function getDados() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+
+// --- Login Logic ---
+const DEFAULT_USER = 'admin';
+const DEFAULT_PASS = 'admin123';
+function isLogged() { return sessionStorage.getItem('abast_admin_logged') === 'true'; }
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+
+  if (user === DEFAULT_USER && pass === DEFAULT_PASS) {
+    sessionStorage.setItem('abast_admin_logged', 'true');
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('admin-view').style.display = 'block';
+    err.classList.remove('show');
+    syncData(); // Auto sync on login
+  } else {
+    document.getElementById('login-error-msg').textContent = 'Usuário ou senha incorretos.';
+    err.classList.add('show');
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('abast_admin_logged');
+  document.getElementById('admin-view').style.display = 'none';
+  document.getElementById('login-modal').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
+
+// Check session on load
+window.onload = () => {
+  if (isLogged()) {
+    document.getElementById('login-modal').style.display = 'none';
+    document.getElementById('admin-view').style.display = 'block';
+    renderDashboard();
+  }
+};
+
+// --- Dashboard Logic ---
+function limparFiltros() {
+  document.getElementById('filter-data').value = '';
+  document.getElementById('filter-complexo').value = '';
+  document.getElementById('filter-projeto').value = '';
+  document.getElementById('filter-placa').value = '';
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const dados = getDados();
+  
+  const fData = document.getElementById('filter-data').value;
+  const fComp = (document.getElementById('filter-complexo').value || '').toLowerCase();
+  const fProj = (document.getElementById('filter-projeto').value || '').toLowerCase();
+  const fPlaca = (document.getElementById('filter-placa').value || '').toLowerCase();
+
+  const filtrados = dados.filter(d => {
+    if (fData && d.data !== fData) return false;
+    if (fComp && !(d.complexo||'').toLowerCase().includes(fComp)) return false;
+    if (fProj && !(d.projeto||'').toLowerCase().includes(fProj)) return false;
+    if (fPlaca && !(d.placa||'').toLowerCase().includes(fPlaca)) return false;
+    return true;
+  });
+
+  let tot = 0, diurno = 0, noturno = 0, totLitros = 0;
+  filtrados.forEach(d => {
+    tot += (parseFloat(d.kmRodado) || 0);
+    totLitros += (parseFloat(d.litros) || 0);
+    if (d.turno === 'Diurno') diurno += (parseFloat(d.kmRodado) || 0);
+    else noturno += (parseFloat(d.kmRodado) || 0);
+  });
+
+  document.getElementById('kpi-total').textContent = tot.toLocaleString('pt-BR');
+  document.getElementById('kpi-diurno').textContent = diurno.toLocaleString('pt-BR');
+  document.getElementById('kpi-noturno').textContent = noturno.toLocaleString('pt-BR');
+  document.getElementById('kpi-litros').textContent = totLitros.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+
+  const area = document.getElementById('table-area');
+
+  if (!dados.length) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-inbox"></i>
+        <h4>Nenhum registro</h4>
+        <p>A base de dados na nuvem está vazia.</p>
+      </div>`;
+    return;
+  }
+  
+  if (!filtrados.length) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-search-off"></i>
+        <h4>Nenhum resultado</h4>
+        <p>Nenhum registro encontrado para os filtros atuais.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = filtrados.slice().reverse().map(d => `
+    <tr>
+      <td style="white-space: nowrap;"><strong>${d.data.split('-').reverse().join('/')}</strong> ${d.hora}</td>
+      <td><span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${d.turno==='Diurno'?'rgba(251,191,36,0.15)':'rgba(96,165,250,0.15)'}; color:${d.turno==='Diurno'?'#fbbf24':'#60a5fa'};">${d.turno}</span></td>
+      <td>${d.complexo}</td>
+      <td>${d.projeto}</td>
+      <td><strong>${d.placa}</strong></td>
+      <td style="text-align:right;">${d.kmInicial}</td>
+      <td style="text-align:right;">${d.kmFinal}</td>
+      <td style="text-align:right; font-weight:bold; color:var(--accent2);">${d.kmRodado}</td>
+      <td style="text-align:right;">${d.litros || '-'}</td>
+      <td class="td-actions">
+        <button onclick="excluir('${d.id}')" title="Excluir"><i class="ti ti-trash" style="font-size:12px;"></i></button>
+      </td>
+    </tr>
+  `).join('');
+
+  area.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Data/Hora</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
+      <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th style="text-align:right;">Litros</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function excluir(id) {
+  if (!confirm(`Excluir este registro?`)) return;
+  
+  // Exclui local
+  let dados = getDados().filter(d => d.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+  renderDashboard();
+  toast('Registro excluído localmente.');
+
+  // Manda excluir na nuvem
+  if (SHEETS_URL) {
+    fetch(SHEETS_URL + "?action=delete&id=" + id, { mode: 'no-cors' })
+      .catch(console.error);
+  }
+}
+
+function exportCSV() {
+  const dados = getDados();
+  if (!dados.length) { toast('Nenhum dado para exportar.', 'alert-circle'); return; }
+  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado,Litros';
+  const rows = dados.map(d =>
+    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado},${d.litros || 0}`
+  );
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'abastecimento_gerencial_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  toast('CSV exportado!');
+}
+
+async function syncData() {
+  if (!SHEETS_URL) return;
+  toast('Sincronizando dados...', 'refresh');
+  try {
+    const res = await fetch(SHEETS_URL);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderDashboard();
+      toast('Dados atualizados da Nuvem!', 'cloud-check');
+    }
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao sincronizar', 'alert-circle');
+  }
+}
+</script>
+</body>
+</html>
