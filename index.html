@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Abastecimento - Segurança Empresarial Sudeste</title>
+<meta name="description" content="Controle de Abastecimento - Segurança Empresarial Sudeste">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="wrap">
+  <!-- Nav Bar -->
+  <nav class="nav-bar">
+    <div class="nav-center">
+      <div class="nav-icon"><i class="ti ti-gas-station"></i></div>
+      <div>
+        <div class="nav-title">Controle de Abastecimento</div>
+        <div class="nav-sub">Segurança Empresarial Sudeste</div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button class="btn-sm" onclick="exportCSV()">
+        <i class="ti ti-download" style="font-size:14px;"></i> Exportar CSV
+      </button>
+      <button class="btn-sm" onclick="syncData()">
+        <i class="ti ti-refresh" style="font-size:14px;"></i> Atualizar
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Split Layout -->
+  <div class="split-layout">
+    
+    <!-- Left: Form Area -->
+    <div>
+      <div class="card" id="form-card">
+        <div class="card-title">
+          <i class="ti ti-file-plus" style="color:var(--accent2);"></i>
+          Novo Registro
+        </div>
+
+        <div class="grid2">
+          <div class="fg">
+            <label>Data *</label>
+            <input type="date" id="f-data" required />
+          </div>
+          <div class="fg">
+            <label>Hora *</label>
+            <input type="time" id="f-hora" required />
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="fg">
+            <label>Complexo *</label>
+            <input type="text" id="f-complexo" placeholder="Ex: Mina Sul" required />
+          </div>
+          <div class="fg">
+            <label>Projeto *</label>
+            <input type="text" id="f-projeto" placeholder="Ex: Terraplanagem" required />
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>Placa do Veículo *</label>
+          <input type="text" id="f-placa" placeholder="AAA-0000" style="text-transform: uppercase;" required />
+        </div>
+
+        <div class="grid2">
+          <div class="fg">
+            <label>KM Inicial *</label>
+            <input type="number" id="f-km-inicial" placeholder="0" required oninput="calcKm()" />
+          </div>
+          <div class="fg">
+            <label>KM Final *</label>
+            <input type="number" id="f-km-final" placeholder="0" required oninput="calcKm()" />
+          </div>
+        </div>
+
+        <div class="fg" style="background: var(--surface2); padding: 12px; border-radius: 8px; border: 1px dashed var(--border2); text-align: center;">
+          <label style="margin-bottom: 2px;">KM Rodado Estimado</label>
+          <div id="km-preview" style="font-size: 18px; font-weight: bold; color: var(--accent2);">0</div>
+        </div>
+
+        <button class="btn btn-primary" onclick="enviar()" id="btn-enviar" style="margin-top: 10px;">
+          <i class="ti ti-device-floppy" style="font-size:16px;"></i> Registrar Abastecimento
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Dashboard Area -->
+    <div>
+      <!-- KPIs -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-val" id="kpi-total">0</div>
+          <div class="kpi-lbl">KM Rodado (Total Filtro)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" id="kpi-diurno" style="color: #fbbf24;">0</div>
+          <div class="kpi-lbl">KM Diurno (06h - 18h)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" id="kpi-noturno" style="color: #60a5fa;">0</div>
+          <div class="kpi-lbl">KM Noturno (18h - 06h)</div>
+        </div>
+      </div>
+
+      <!-- Filters & Table -->
+      <div class="card" style="padding: 1.5rem;">
+        <div class="card-title" style="margin-bottom: 1rem;">
+          <i class="ti ti-filter" style="color:var(--text2);"></i> Filtros de Busca
+        </div>
+        
+        <div class="filters-bar">
+          <div class="fg">
+            <label>Data</label>
+            <input type="date" id="filter-data" onchange="renderDashboard()" />
+          </div>
+          <div class="fg">
+            <label>Complexo</label>
+            <input type="text" id="filter-complexo" placeholder="Todos..." oninput="renderDashboard()" />
+          </div>
+          <div class="fg">
+            <label>Projeto</label>
+            <input type="text" id="filter-projeto" placeholder="Todos..." oninput="renderDashboard()" />
+          </div>
+          <div class="fg">
+            <label>Placa</label>
+            <input type="text" id="filter-placa" placeholder="Todas..." oninput="renderDashboard()" />
+          </div>
+          <div class="fg" style="flex: 0 0 auto; display: flex; align-items: flex-end;">
+            <button class="btn-sm" onclick="limparFiltros()" style="height: 38px;">Limpar</button>
+          </div>
+        </div>
+
+        <div id="table-area" style="margin-top: 1.5rem;">
+          <!-- Table renders here -->
+        </div>
+      </div>
+      
+    </div>
+    <!-- End Right Area -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <i class="ti ti-check toast-icon"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- SCRIPT LOGIC -->
+<script>
+const STORAGE_KEY = 'abastecimento_dados';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxKmb_YJbTH3ktLw_BnQMbPeulE-Q11bSyjMcFPaZIfQ7g3QjeirJq42DneP6MJI71g/exec'; // URL do Apps Script para salvar em nuvem, se desejar.
+
+function toast(msg, icon='check') {
+  document.getElementById('toast-msg').textContent = msg;
+  document.querySelector('.toast-icon').className = `ti ti-${icon} toast-icon`;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function getDados() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+
+// Auto-fill Data and Hora with current time on load
+window.onload = () => {
+  const now = new Date();
+  document.getElementById('f-data').value = now.toISOString().split('T')[0];
+  document.getElementById('f-hora').value = now.toTimeString().slice(0,5);
+  renderDashboard();
+};
+
+function calcKm() {
+  const init = parseFloat(document.getElementById('f-km-inicial').value) || 0;
+  const fim = parseFloat(document.getElementById('f-km-final').value) || 0;
+  let diff = fim - init;
+  if (diff < 0) diff = 0;
+  document.getElementById('km-preview').textContent = diff;
+}
+
+function determinarTurno(horaStr) {
+  // 06:00 as 18:00 (Diurno), 18:00 as 06:00 (Noturno)
+  const h = parseInt(horaStr.split(':')[0], 10);
+  if (h >= 6 && h < 18) return 'Diurno';
+  return 'Noturno';
+}
+
+function enviar() {
+  const data = document.getElementById('f-data').value;
+  const hora = document.getElementById('f-hora').value;
+  const complexo = document.getElementById('f-complexo').value.trim();
+  const projeto = document.getElementById('f-projeto').value.trim();
+  const placa = document.getElementById('f-placa').value.trim().toUpperCase();
+  const kmInicial = parseFloat(document.getElementById('f-km-inicial').value);
+  const kmFinal = parseFloat(document.getElementById('f-km-final').value);
+
+  if (!data || !hora || !complexo || !projeto || !placa || isNaN(kmInicial) || isNaN(kmFinal)) {
+    toast('Preencha todos os campos obrigatórios (*)', 'alert-circle');
+    return;
+  }
+  
+  if (kmFinal < kmInicial) {
+    toast('KM Final não pode ser menor que KM Inicial.', 'alert-circle');
+    return;
+  }
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" style="font-size:16px;"></i> Registrando...';
+
+  const kmRodado = kmFinal - kmInicial;
+  const turno = determinarTurno(hora);
+
+  const registro = {
+    id: 'A' + Date.now().toString().slice(-6),
+    data, hora, turno, complexo, projeto, placa,
+    kmInicial, kmFinal, kmRodado,
+    criadoEm: new Date().toLocaleString('pt-BR')
+  };
+
+  if (SHEETS_URL) {
+    fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registro)
+    }).then(() => finishEnviar(registro)).catch(e => {
+      console.error(e);
+      finishEnviar(registro);
+    });
+  } else {
+    finishEnviar(registro);
+  }
+}
+
+function finishEnviar(registro) {
+  const lista = getDados();
+  lista.push(registro);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy" style="font-size:16px;"></i> Registrar Abastecimento';
+
+  toast('Registro salvo com sucesso!');
+  
+  // Limpar campos numéricos
+  document.getElementById('f-km-inicial').value = '';
+  document.getElementById('f-km-final').value = '';
+  document.getElementById('f-placa').value = '';
+  calcKm();
+  
+  renderDashboard();
+}
+
+function limparFiltros() {
+  document.getElementById('filter-data').value = '';
+  document.getElementById('filter-complexo').value = '';
+  document.getElementById('filter-projeto').value = '';
+  document.getElementById('filter-placa').value = '';
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const dados = getDados();
+  
+  // Pega filtros
+  const fData = document.getElementById('filter-data').value;
+  const fComp = (document.getElementById('filter-complexo').value || '').toLowerCase();
+  const fProj = (document.getElementById('filter-projeto').value || '').toLowerCase();
+  const fPlaca = (document.getElementById('filter-placa').value || '').toLowerCase();
+
+  const filtrados = dados.filter(d => {
+    if (fData && d.data !== fData) return false;
+    if (fComp && !(d.complexo||'').toLowerCase().includes(fComp)) return false;
+    if (fProj && !(d.projeto||'').toLowerCase().includes(fProj)) return false;
+    if (fPlaca && !(d.placa||'').toLowerCase().includes(fPlaca)) return false;
+    return true;
+  });
+
+  // Calculate KPIs for filtered data
+  let tot = 0, diurno = 0, noturno = 0;
+  filtrados.forEach(d => {
+    tot += d.kmRodado;
+    if (d.turno === 'Diurno') diurno += d.kmRodado;
+    else noturno += d.kmRodado;
+  });
+
+  document.getElementById('kpi-total').textContent = tot.toLocaleString('pt-BR');
+  document.getElementById('kpi-diurno').textContent = diurno.toLocaleString('pt-BR');
+  document.getElementById('kpi-noturno').textContent = noturno.toLocaleString('pt-BR');
+
+  const area = document.getElementById('table-area');
+
+  if (!dados.length) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-inbox"></i>
+        <h4>Nenhum registro</h4>
+        <p>Preencha o formulário ao lado para começar.</p>
+      </div>`;
+    return;
+  }
+  
+  if (!filtrados.length) {
+    area.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-search-off"></i>
+        <h4>Nenhum resultado</h4>
+        <p>Nenhum registro encontrado para os filtros atuais.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = filtrados.slice().reverse().map(d => `
+    <tr>
+      <td style="white-space: nowrap;"><strong>${d.data.split('-').reverse().join('/')}</strong> ${d.hora}</td>
+      <td><span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${d.turno==='Diurno'?'rgba(251,191,36,0.15)':'rgba(96,165,250,0.15)'}; color:${d.turno==='Diurno'?'#fbbf24':'#60a5fa'};">${d.turno}</span></td>
+      <td>${d.complexo}</td>
+      <td>${d.projeto}</td>
+      <td><strong>${d.placa}</strong></td>
+      <td style="text-align:right;">${d.kmInicial}</td>
+      <td style="text-align:right;">${d.kmFinal}</td>
+      <td style="text-align:right; font-weight:bold; color:var(--accent2);">${d.kmRodado}</td>
+      <td class="td-actions">
+        <button onclick="excluir('${d.id}')" title="Excluir"><i class="ti ti-trash" style="font-size:12px;"></i></button>
+      </td>
+    </tr>
+  `).join('');
+
+  area.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Data/Hora</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
+      <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function excluir(id) {
+  if (!confirm(`Excluir este registro?`)) return;
+  let dados = getDados().filter(d => d.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+  renderDashboard();
+  toast('Registro excluído.');
+}
+
+function exportCSV() {
+  const dados = getDados();
+  if (!dados.length) { toast('Nenhum dado para exportar.', 'alert-circle'); return; }
+  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado';
+  const rows = dados.map(d =>
+    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado}`
+  );
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'controle_abastecimento_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  toast('CSV exportado!');
+}
+
+async function syncData() {
+  if (!SHEETS_URL) {
+    toast('Nenhuma nuvem configurada. Dados locais.', 'info-circle');
+    renderDashboard();
+    return;
+  }
+  toast('Sincronizando dados...', 'refresh');
+  try {
+    const res = await fetch(SHEETS_URL);
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderDashboard();
+      toast('Dados atualizados!', 'cloud-check');
+    }
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao sincronizar', 'alert-circle');
+  }
+}
+</script>
+</body>
+</html>
