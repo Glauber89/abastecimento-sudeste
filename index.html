@@ -82,6 +82,11 @@
           </div>
         </div>
 
+        <div class="fg">
+          <label>Total de Litros Abastecido *</label>
+          <input type="number" step="0.1" id="f-litros" placeholder="0.0" required />
+        </div>
+
         <div class="fg" style="background: var(--surface2); padding: 12px; border-radius: 8px; border: 1px dashed var(--border2); text-align: center;">
           <label style="margin-bottom: 2px;">KM Rodado Estimado</label>
           <div id="km-preview" style="font-size: 18px; font-weight: bold; color: var(--accent2);">0</div>
@@ -96,7 +101,7 @@
     <!-- Right: Dashboard Area -->
     <div>
       <!-- KPIs -->
-      <div class="kpis">
+      <div class="kpis" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi">
           <div class="kpi-val" id="kpi-total">0</div>
           <div class="kpi-lbl">KM Rodado (Total Filtro)</div>
@@ -108,6 +113,10 @@
         <div class="kpi">
           <div class="kpi-val" id="kpi-noturno" style="color: #60a5fa;">0</div>
           <div class="kpi-lbl">KM Noturno (18h - 06h)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-val" id="kpi-litros" style="color: #34d399;">0</div>
+          <div class="kpi-lbl">Total Litros (Filtro)</div>
         </div>
       </div>
 
@@ -158,7 +167,7 @@
 <!-- SCRIPT LOGIC -->
 <script>
 const STORAGE_KEY = 'abastecimento_dados';
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzXfqFxMqm1pcU_0XHcmMHcoLKFqlz35qseEYUWXsq7xMlNYLG5FvKXtK4uYLakgkuo/exec'; // URL do Apps Script para salvar em nuvem, se desejar.
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwl6olRtVdBjKzl4FSirVBHn5vIby-4YyflZZJQwnuDfZQXwK54kTfewMm7ifTuIX1t/exec'; // URL do Apps Script para salvar em nuvem, se desejar.
 
 function toast(msg, icon='check') {
   document.getElementById('toast-msg').textContent = msg;
@@ -203,8 +212,9 @@ function enviar() {
   const placa = document.getElementById('f-placa').value.trim().toUpperCase();
   const kmInicial = parseFloat(document.getElementById('f-km-inicial').value);
   const kmFinal = parseFloat(document.getElementById('f-km-final').value);
+  const litros = parseFloat(document.getElementById('f-litros').value);
 
-  if (!data || !hora || !complexo || !projeto || !placa || isNaN(kmInicial) || isNaN(kmFinal)) {
+  if (!data || !hora || !complexo || !projeto || !placa || isNaN(kmInicial) || isNaN(kmFinal) || isNaN(litros)) {
     toast('Preencha todos os campos obrigatórios (*)', 'alert-circle');
     return;
   }
@@ -224,7 +234,7 @@ function enviar() {
   const registro = {
     id: 'A' + Date.now().toString().slice(-6),
     data, hora, turno, complexo, projeto, placa,
-    kmInicial, kmFinal, kmRodado,
+    kmInicial, kmFinal, kmRodado, litros,
     criadoEm: new Date().toLocaleString('pt-BR')
   };
 
@@ -258,6 +268,7 @@ function finishEnviar(registro) {
   document.getElementById('f-km-inicial').value = '';
   document.getElementById('f-km-final').value = '';
   document.getElementById('f-placa').value = '';
+  document.getElementById('f-litros').value = '';
   calcKm();
   
   renderDashboard();
@@ -289,9 +300,10 @@ function renderDashboard() {
   });
 
   // Calculate KPIs for filtered data
-  let tot = 0, diurno = 0, noturno = 0;
+  let tot = 0, diurno = 0, noturno = 0, totLitros = 0;
   filtrados.forEach(d => {
     tot += d.kmRodado;
+    totLitros += (parseFloat(d.litros) || 0);
     if (d.turno === 'Diurno') diurno += d.kmRodado;
     else noturno += d.kmRodado;
   });
@@ -299,6 +311,7 @@ function renderDashboard() {
   document.getElementById('kpi-total').textContent = tot.toLocaleString('pt-BR');
   document.getElementById('kpi-diurno').textContent = diurno.toLocaleString('pt-BR');
   document.getElementById('kpi-noturno').textContent = noturno.toLocaleString('pt-BR');
+  document.getElementById('kpi-litros').textContent = totLitros.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1});
 
   const area = document.getElementById('table-area');
 
@@ -332,6 +345,7 @@ function renderDashboard() {
       <td style="text-align:right;">${d.kmInicial}</td>
       <td style="text-align:right;">${d.kmFinal}</td>
       <td style="text-align:right; font-weight:bold; color:var(--accent2);">${d.kmRodado}</td>
+      <td style="text-align:right;">${d.litros || '-'}</td>
       <td class="td-actions">
         <button onclick="excluir('${d.id}')" title="Excluir"><i class="ti ti-trash" style="font-size:12px;"></i></button>
       </td>
@@ -341,7 +355,7 @@ function renderDashboard() {
   area.innerHTML = `<div class="table-wrap"><table>
     <thead><tr>
       <th>Data/Hora</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
-      <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th></th>
+      <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th style="text-align:right;">Litros</th><th></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
@@ -358,9 +372,9 @@ function excluir(id) {
 function exportCSV() {
   const dados = getDados();
   if (!dados.length) { toast('Nenhum dado para exportar.', 'alert-circle'); return; }
-  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado';
+  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado,Litros';
   const rows = dados.map(d =>
-    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado}`
+    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado},${d.litros || 0}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');
   const a = document.createElement('a');
