@@ -51,24 +51,18 @@
           </div>
         </div>
 
-        <div class="grid2">
-          <div class="fg">
-            <label>Responsável *</label>
-            <input type="text" id="f-responsavel" placeholder="Seu nome" required />
-          </div>
-          <div class="fg">
-            <label>Turno *</label>
-            <select id="f-turno" required>
-              <option value="Diurno">Diurno</option>
-              <option value="Noturno">Noturno</option>
-            </select>
-          </div>
+        <div class="fg">
+          <label>Turno *</label>
+          <select id="f-turno" required>
+            <option value="Diurno">Diurno</option>
+            <option value="Noturno">Noturno</option>
+          </select>
         </div>
 
         <div class="grid2">
           <div class="fg">
             <label>Complexo *</label>
-            <input type="text" id="f-complexo" placeholder="Ex: Mina Sul" value="Mina" required />
+            <input type="text" id="f-complexo" placeholder="Ex: Mina Sul" required />
           </div>
           <div class="fg">
             <label>Projeto *</label>
@@ -210,7 +204,6 @@ function calcKm() {
 function enviar() {
   const data = document.getElementById('f-data').value;
   const hora = document.getElementById('f-hora').value;
-  const responsavel = document.getElementById('f-responsavel').value.trim();
   const turno = document.getElementById('f-turno').value;
   const complexo = document.getElementById('f-complexo').value.trim();
   const projeto = document.getElementById('f-projeto').value.trim();
@@ -219,7 +212,7 @@ function enviar() {
   const kmFinal = parseFloat(document.getElementById('f-km-final').value);
   const litros = parseFloat(document.getElementById('f-litros').value);
 
-  if (!data || !hora || !responsavel || !complexo || !projeto || !placa || isNaN(kmInicial) || isNaN(kmFinal) || isNaN(litros)) {
+  if (!data || !hora || !complexo || !projeto || !placa || isNaN(kmInicial) || isNaN(kmFinal) || isNaN(litros)) {
     toast('Preencha todos os campos obrigatórios (*)', 'alert-circle');
     return;
   }
@@ -237,7 +230,7 @@ function enviar() {
 
   const registro = {
     id: 'A' + Date.now().toString().slice(-6),
-    data, hora, responsavel, turno, complexo, projeto, placa,
+    data, hora, turno, complexo, projeto, placa,
     kmInicial, kmFinal, kmRodado, litros,
     criadoEm: new Date().toLocaleString('pt-BR')
   };
@@ -296,7 +289,14 @@ function renderDashboard() {
   const fPlaca = (document.getElementById('filter-placa').value || '').toLowerCase();
 
   const filtrados = dados.filter(d => {
-    if (fData && d.data !== fData) return false;
+    let dStr = d.data || '';
+    if (dStr.includes('T')) dStr = dStr.split('T')[0];
+    if (dStr.includes('/')) {
+      const parts = dStr.split('/');
+      if (parts.length === 3) dStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    
+    if (fData && dStr !== fData) return false;
     if (fComp && !(d.complexo||'').toLowerCase().includes(fComp)) return false;
     if (fProj && !(d.projeto||'').toLowerCase().includes(fProj)) return false;
     if (fPlaca && !(d.placa||'').toLowerCase().includes(fPlaca)) return false;
@@ -350,7 +350,6 @@ function renderDashboard() {
     return `
     <tr>
       <td style="white-space: nowrap;"><strong>${dStr}</strong> ${hStr}</td>
-      <td>${d.responsavel || '-'}</td>
       <td><span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${d.turno==='Diurno'?'rgba(251,191,36,0.15)':'rgba(96,165,250,0.15)'}; color:${d.turno==='Diurno'?'#fbbf24':'#60a5fa'};">${d.turno}</span></td>
       <td>${d.complexo}</td>
       <td>${d.projeto}</td>
@@ -368,7 +367,7 @@ function renderDashboard() {
 
   area.innerHTML = `<div class="table-wrap"><table>
     <thead><tr>
-      <th>Data/Hora</th><th>Responsável</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
+      <th>Data/Hora</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
       <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th style="text-align:right;">Litros</th><th></th>
     </tr></thead>
     <tbody>${rows}</tbody>

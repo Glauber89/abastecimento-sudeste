@@ -231,7 +231,14 @@ function renderDashboard() {
   const fPlaca = (document.getElementById('filter-placa').value || '').toLowerCase();
 
   const filtrados = dados.filter(d => {
-    if (fData && d.data !== fData) return false;
+    let dStr = d.data || '';
+    if (dStr.includes('T')) dStr = dStr.split('T')[0];
+    if (dStr.includes('/')) {
+      const parts = dStr.split('/');
+      if (parts.length === 3) dStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+    
+    if (fData && dStr !== fData) return false;
     if (fComp && !(d.complexo||'').toLowerCase().includes(fComp)) return false;
     if (fProj && !(d.projeto||'').toLowerCase().includes(fProj)) return false;
     if (fPlaca && !(d.placa||'').toLowerCase().includes(fPlaca)) return false;
@@ -284,7 +291,6 @@ function renderDashboard() {
     return `
     <tr>
       <td style="white-space: nowrap;"><strong>${dStr}</strong> ${hStr}</td>
-      <td>${d.responsavel || '-'}</td>
       <td><span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${d.turno==='Diurno'?'rgba(251,191,36,0.15)':'rgba(96,165,250,0.15)'}; color:${d.turno==='Diurno'?'#fbbf24':'#60a5fa'};">${d.turno}</span></td>
       <td>${d.complexo}</td>
       <td>${d.projeto}</td>
@@ -302,7 +308,7 @@ function renderDashboard() {
 
   area.innerHTML = `<div class="table-wrap"><table>
     <thead><tr>
-      <th>Data/Hora</th><th>Responsável</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
+      <th>Data/Hora</th><th>Turno</th><th>Complexo</th><th>Projeto</th>
       <th>Placa</th><th style="text-align:right;">KM Inic.</th><th style="text-align:right;">KM Fin.</th><th style="text-align:right;">Rodado</th><th style="text-align:right;">Litros</th><th></th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -328,9 +334,9 @@ function excluir(id) {
 function exportCSV() {
   const dados = getDados();
   if (!dados.length) { toast('Nenhum dado para exportar.', 'alert-circle'); return; }
-  const header = 'Data,Hora,Responsavel,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado,Litros';
+  const header = 'Data,Hora,Turno,Complexo,Projeto,Placa,KM_Inicial,KM_Final,KM_Rodado,Litros';
   const rows = dados.map(d =>
-    `"${d.data}","${d.hora}","${d.responsavel || ''}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado},${d.litros || 0}`
+    `"${d.data}","${d.hora}","${d.turno}","${d.complexo}","${d.projeto}","${d.placa}",${d.kmInicial},${d.kmFinal},${d.kmRodado},${d.litros || 0}`
   );
   const csv = '\uFEFF' + header + '\n' + rows.join('\n');
   const a = document.createElement('a');
